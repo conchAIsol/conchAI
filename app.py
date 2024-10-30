@@ -1,16 +1,7 @@
-from flask import Flask, render_template, request, jsonify
-from flask_cors import CORS
 import asyncio
+import websockets
+import uuid
 from characterai import aiocai
-import time
-from flask_socketio import SocketIO, emit, send
-
-
-userTurn = False
-user_input = None
-aiTurn = True
-yourChat = None
-chatCreated = False
 
 user_chats = {}
 
@@ -27,19 +18,28 @@ async def checkChat(user_sid):
             user_chats[user_sid] = new.chat_id
             return answer.text
     else:
-        return None
-                                
-async def getmessage(user_input, user_sid):
+        return None 
     
-    print("inget")
+async def getmessage(user_input, user_sid):
+    print("getmsg called")
+    if user_sid not in user_chats:
+        print("ifmsg")
+        char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
+        client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
 
-    char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
-
-    client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
-    yourChat = user_chats.get(user_sid)
-
-    if yourChat is not None:
-
+        me = await client.get_me()
+        async with await client.connect() as chat:
+            new, answer = await chat.new_chat(
+            char, me.id
+            )
+            user_chats[user_sid] = new.chat_id
+            print(answer.text)
+            return answer.text
+    else:
+        print("elsemsg")
+        char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
+        client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
+        yourChat = user_chats.get(user_sid)
         async with await client.connect() as chat:
             print('connecting')
             text = user_input
@@ -49,71 +49,40 @@ async def getmessage(user_input, user_sid):
             print('end stage msg')
             print(message.text)
             return message.text
-    else:
+
+async def createChat(user_sid):
+    if user_sid not in user_chats:
+        print("ifmsg")
+        char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
+        client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
+
         me = await client.get_me()
         async with await client.connect() as chat:
             new, answer = await chat.new_chat(
             char, me.id
             )
             user_chats[user_sid] = new.chat_id
+            print('created new chat', user_chats[user_sid])
             return answer.text
 
 
-        
-        
+async def handler(websocket, path):
+
+    print('handling')
+
+    user_sid = str(uuid.uuid4())
+    await createChat(user_sid)
+
+    async for message in websocket:
+        response = await getmessage(message, user_sid)
+        await websocket.send(response)
 
 
-app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app)
-
-
-
-
-
-@app.route('/long-poll', methods=['GET'])
-async def long_poll():
-    global user_input
-    output_message = await getmessage((user_input))
-        
-
-    return output_message
-
-
-
-
-@app.route("/", methods=['GET', 'POST'])
-def home():
-    return render_template('index.html')
-
-
-async def baiter():
-    print('test that')
-
-@socketio.on('test')
-def test(test):
-    print('why does this work')
-
-@socketio.on('submit')
-def submit(submit):
-    user_sid = request.sid
-    print('input received')
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    loop.run_until_complete(checkChat(user_sid))
-    user_input = submit
-    print(user_input)
-    print('getting message')
-    
-    output_message = loop.run_until_complete(getmessage(user_input, user_sid))
-    print('outputted, returning')
-    socketio.emit('output', output_message, to=request.sid)
-
+async def main():
+    async with websockets.serve(handler, "localhost", 8765):
+        print('websocket server started lhj')
+        await asyncio.Future()
 
 if __name__ == "__main__":
-    socketio.run(app)
-
-
-
+    asyncio.run(main())
 
