@@ -98,7 +98,6 @@ def test(test):
 @socketio.on('submit')
 def submit(submit):
     print('input received')
-    global  user_input
     user_input = submit
     print(user_input)
     print('getting message')
@@ -106,7 +105,7 @@ def submit(submit):
     asyncio.set_event_loop(loop1)
     output_message = loop1.run_until_complete(getmessage(user_input))
     print('outputted, returning')
-    socketio.emit('output', output_message)
+    socketio.emit('output', output_message, to=request.sid)
 
 
 if __name__ == "__main__":
