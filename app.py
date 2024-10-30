@@ -84,7 +84,7 @@ async def long_poll():
 
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    return render_template('index.html', text=output)
+    return render_template('index.html')
 
 
 async def baiter():
