@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$conchAI</title>
-    <link rel="stylesheet" href="../static/index.css">
+    <link rel="stylesheet" href="./static/index.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 <body>
@@ -35,7 +35,7 @@
 
         // Make function explicitly global
         var msgRef;
-        socket = new WebSocket('wss://conchai.onrender.com:8765')
+        socket = new WebSocket('wss://conchai.onrender.com/ws')
         socket.onopen = function(event){
             console.log('socket connected')
 
