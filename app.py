@@ -12,13 +12,11 @@ aiTurn = True
 yourChat = None
 chatCreated = False
 
+user_chats = {}
 
-async def checkChat():
-    global yourChat
-    global chatCreated
-    if yourChat is None:
+async def checkChat(user_sid):
+    if user_sid not in user_chats:
         char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
-
         client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
 
         me = await client.get_me()
@@ -26,18 +24,19 @@ async def checkChat():
             new, answer = await chat.new_chat(
             char, me.id
             )
-            yourChat = new.chat_id
+            user_chats[user_sid] = new.chat_id
             return answer.text
-        chatCreated = True
+    else:
+        return None
                                 
-async def getmessage(user_input):
+async def getmessage(user_input, user_sid):
     
     print("inget")
-    global yourChat
 
     char = '0yCipW7-xP5kWWT9ptFbvE324QFNbCIZe2gb8AWvlXM'
 
     client = aiocai.Client('ecf4941c89f3fb09372078ed8cb36b679e6074c9')
+    yourChat = user_chats.get(user_sid)
 
     if yourChat is not None:
 
@@ -50,6 +49,14 @@ async def getmessage(user_input):
             print('end stage msg')
             print(message.text)
             return message.text
+    else:
+        me = await client.get_me()
+        async with await client.connect() as chat:
+            new, answer = await chat.new_chat(
+            char, me.id
+            )
+            user_chats[user_sid] = new.chat_id
+            return answer.text
 
 
         
@@ -97,13 +104,14 @@ def test(test):
 
 @socketio.on('submit')
 def submit(submit):
+    user_sid = request.sid
     print('input received')
     user_input = submit
     print(user_input)
     print('getting message')
     loop1 = asyncio.new_event_loop()
     asyncio.set_event_loop(loop1)
-    output_message = loop1.run_until_complete(getmessage(user_input))
+    output_message = loop1.run_until_complete(getmessage(user_input, user_sid))
     print('outputted, returning')
     socketio.emit('output', output_message, to=request.sid)
 
