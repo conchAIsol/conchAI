@@ -1,7 +1,9 @@
 import asyncio
 import websockets
 import uuid
+from http.server import SimpleHTTPRequestHandler, HTTPServer
 from characterai import aiocai
+import threading
 
 user_chats = {}
 
@@ -78,11 +80,20 @@ async def handler(websocket, path):
         await websocket.send(response)
 
 
+
+def run_http_server():
+    server_address = ('', 8080)
+    httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)
+    httpd.serve_forever()
+
 async def main():
-    async with websockets.serve(handler, "localhost", 8765):
-        print('websocket server started lhj')
+    async with websockets.serve(handler, "0.0.0.0", 8765):
+        print('websocket server started lh')
+
+        threading.Thread(target=run_http_server, daemon=True).start()
         await asyncio.Future()
+
+
 
 if __name__ == "__main__":
     asyncio.run(main())
-
