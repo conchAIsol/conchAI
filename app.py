@@ -4,6 +4,7 @@ import uuid
 from http.server import SimpleHTTPRequestHandler, HTTPServer
 from characterai import aiocai
 import threading
+import os
 
 user_chats = {}
 
@@ -87,7 +88,8 @@ def run_http_server():
     httpd.serve_forever()
 
 async def main():
-    async with websockets.serve(handler, "0.0.0.0", 8765):
+    port = int(os.environ.get("PORT", 8765))
+    async with websockets.serve(handler, "0.0.0.0", port):
         print('websocket server started lh')
 
         threading.Thread(target=run_http_server, daemon=True).start()
