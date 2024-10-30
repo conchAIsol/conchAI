@@ -84,14 +84,6 @@ async def long_poll():
 
 @app.route("/", methods=['GET', 'POST'])
 def home():
-    global chatCreated
-    output = 'deez'
-    if chatCreated == False:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        output = loop.run_until_complete(checkChat())
-        chatCreated = True
-
     return render_template('index.html', text=output)
 
 
@@ -106,12 +98,15 @@ def test(test):
 def submit(submit):
     user_sid = request.sid
     print('input received')
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    loop.run_until_complete(checkChat(user_sid))
     user_input = submit
     print(user_input)
     print('getting message')
-    loop1 = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop1)
-    output_message = loop1.run_until_complete(getmessage(user_input, user_sid))
+    
+    output_message = loop.run_until_complete(getmessage(user_input, user_sid))
     print('outputted, returning')
     socketio.emit('output', output_message, to=request.sid)
 
