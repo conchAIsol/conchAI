@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>$conchAI</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='index.css')}}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 </head>
 <body>
     <img class="flower" src="../static/images/flower.png" id="flower1">
@@ -18,6 +19,9 @@
         <div id="chat">
             
                 <p id="response" class="conchReply">what's up jit, what u wanna know about ur future?</p>
+                <script>
+                    responsiveVoice.speak("what's up jit, what u wanna know about ur future?", "US English Female")
+                </script>
            
         </div>
             <div id="chatbar">
@@ -35,13 +39,30 @@
 
         // Make function explicitly global
         var msgRef;
-        
-        window.handleSend = function() {
-            if(disabled == false){
+        socket = io();
+        socket.on('connect', function (){
+            console.log('socket connected')
+
+            document.getElementById('userinput').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') { // Check if the pressed key is Enter
+                    handleSend(); // Call the function to send input
+                    event.preventDefault(); // Prevent default form submission if inside a form
+                }
+            });
+        })
+        window.handleSend = async function() {
+            if(disabled == false && document.getElementById('userinput').value != ''){
+                let test = 'working'
+                socket.emit('test', test)
+                
             disabled = true;
             document.getElementById('userinput').placeholder = 'Wait for the conch'
             console.log("handleSend executed");
-            const userInput = document.getElementById('userinput').value;
+            let userInput = document.getElementById('userinput').value;
+            let submit = `${userInput}`
+
+            socket.emit('submit', submit)
+            console.log("socket emitted")
             document.getElementById('userinput').value = ''
             document.getElementById('userinput').disabled = true
             document.getElementsByName('sendButton').disabled = true
@@ -57,19 +78,29 @@
 
             document.getElementById('chat').scrollTop = document.getElementById('chat').scrollHeight
             
+            window.handleChange = function(data){
+                console.log(data);
+                        msgRef.style.whiteSpace = 'normal'
+                        msgRef.textContent = data
+                        responsiveVoice.speak(data, "US English Female")
+                        document.getElementById('userinput').disabled = false
+                        document.getElementById('sendButton').disabled = false
+                        document.getElementById('userinput').placeholder = 'Type here...'
+                        disabled = false;
+    
+            }
 
-            // Send user input to the server via GET request
-            fetch(`/submit-input/${encodeURIComponent(userInput)}`)
-                .then(response => {
-                    if (response.ok) {
-                        console.log("ok");
-                        longPoll(); // Start long polling after sending input
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+            
+            
+            
         };
+
+        socket.on('output', function(data){
+            console.log('received data')
+            handleChange(data)
+        })
+
+        
 
         window.longPoll = function() {
             console.log("poll");
